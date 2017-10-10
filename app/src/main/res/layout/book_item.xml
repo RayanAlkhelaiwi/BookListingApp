@@ -1,0 +1,24 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="?android:attr/listPreferredItemHeight"
+    android:orientation="vertical"
+    android:padding="8dp">
+
+    <TextView
+        android:id="@+id/title_text_view"
+        style="@style/list_items_style"
+        android:maxLines="2"
+        android:textAppearance="@style/Base.TextAppearance.AppCompat.Medium"
+        android:textColor="@android:color/black"
+        tools:text="Android Development Basics Nanodegree" />
+
+    <TextView
+        android:id="@+id/author_text_view"
+        style="@style/list_items_style"
+        android:maxLines="1"
+        android:textAllCaps="true"
+        android:textAppearance="@style/Base.TextAppearance.AppCompat.Small"
+        android:textColor="@android:color/darker_gray"
+        tools:text="John Doe" />
+</LinearLayout>
