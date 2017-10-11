@@ -7,6 +7,7 @@ import android.content.Loader;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.Bundle;
+import android.os.NetworkOnMainThreadException;
 import android.os.Parcelable;
 import android.support.v7.app.AppCompatActivity;
 import android.view.View;
@@ -37,7 +38,9 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
     private List<Book> bookList;
     private TextView emptyTextView;
     private InputMethodManager inputManager;
+    private ConnectivityManager cm;
     private NetworkInfo activeNetwork;
+    private LoaderManager loaderManager;
     /**
      * Adapter for the list of books
      */
@@ -54,6 +57,9 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
          */
 
         inputManager = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+
+        //Get connection information
+        cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
 
         //Initializing progress bar with its ID
         progressBar = findViewById(R.id.progress_bar);
@@ -79,6 +85,10 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
         //Set the search button to be clickable to do the search for the entered word
         searchButton = (Button) findViewById(R.id.search_button);
 
+        // Get a reference to the LoaderManager, in order to interact with loaders.
+        loaderManager = getLoaderManager();
+        loaderManager.initLoader(BOOKS_LOADER_ID, null, MainActivity.this);
+
         //To get the saved instance of the app, that keep its data upon rotation
         if (savedInstanceState != null && savedInstanceState.containsKey(SAVED_INSTANCE)) {
             bookList = savedInstanceState.getParcelableArrayList(SAVED_INSTANCE);
@@ -89,10 +99,6 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
             mAdapter = new BookAdapter(this, bookList);
             booksListView.setAdapter(mAdapter);
         }
-
-        //Get connection information
-        ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
-        activeNetwork = cm.getActiveNetworkInfo();
 
         //Set onClick for the search button to initiate the search in the query
         searchButton.setOnClickListener(new View.OnClickListener() {
@@ -109,25 +115,28 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
                 //Add the user's search to the JSON response
                 jsonUrl = JSON_RESPONSE_URL + editText.getText().toString().trim().replace(" ", "+");
 
-                //Check if there is connection
-                if (activeNetwork != null && activeNetwork.isConnected()) {
+                try {
+                    activeNetwork = cm.getActiveNetworkInfo();
+                    //Check if there is connection
+                    if (activeNetwork != null && activeNetwork.isConnected()) {
 
-                    // Get a reference to the LoaderManager, in order to interact with loaders.
-                    LoaderManager loaderManager = getLoaderManager();
+                        // Initialize the loader. Pass in the int ID constant defined above and pass in null for
+                        // the bundle. Pass in this activity for the LoaderCallbacks parameter (which is valid
+                        // because this activity implements the LoaderCallbacks interface).
+                        loaderManager.restartLoader(BOOKS_LOADER_ID, null, MainActivity.this);
+                    } else {
 
-                    //Clear the adapter when an attempt to re-search is an option
-                    mAdapter.clear();
+                        //Clear the adapter when an attempt to re-search is an option
+                        mAdapter.clear();
 
-                    // Initialize the loader. Pass in the int ID constant defined above and pass in null for
-                    // the bundle. Pass in this activity for the LoaderCallbacks parameter (which is valid
-                    // because this activity implements the LoaderCallbacks interface).
-                    loaderManager.restartLoader(BOOKS_LOADER_ID, null, MainActivity.this);
-                } else {
-                    View progressBar = findViewById(R.id.progress_bar);
-                    progressBar.setVisibility(View.GONE);
+                        View progressBar = findViewById(R.id.progress_bar);
+                        progressBar.setVisibility(View.GONE);
 
-                    emptyTextView = (TextView) findViewById(android.R.id.empty);
-                    emptyTextView.setText(R.string.no_internet);
+                        emptyTextView = (TextView) findViewById(android.R.id.empty);
+                        emptyTextView.setText(R.string.no_internet);
+                    }
+                } catch (NetworkOnMainThreadException e) {
+                    e.printStackTrace();
                 }
             }
         });
