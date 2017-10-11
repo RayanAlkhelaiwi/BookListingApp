@@ -10,6 +10,7 @@ import android.os.Bundle;
 import android.os.Parcelable;
 import android.support.v7.app.AppCompatActivity;
 import android.view.View;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ListView;
@@ -34,6 +35,8 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
     private EditText editText;
     private Button searchButton;
     private List<Book> bookList;
+    private TextView emptyTextView;
+    private InputMethodManager inputManager;
     private NetworkInfo activeNetwork;
     /**
      * Adapter for the list of books
@@ -49,6 +52,8 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
          * Initializing the variables inside the onCreate method
          *
          */
+
+        inputManager = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
 
         //Initializing progress bar with its ID
         progressBar = findViewById(R.id.progress_bar);
@@ -98,6 +103,9 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
                 //Set progress bar visible to indicate the search is in process
                 progressBar.setVisibility(View.VISIBLE);
 
+                //To hide the keyboard when the Search button is clicked (Better UX?)
+                inputManager.hideSoftInputFromWindow(getCurrentFocus().getWindowToken(), InputMethodManager.HIDE_NOT_ALWAYS);
+
                 //Add the user's search to the JSON response
                 jsonUrl = JSON_RESPONSE_URL + editText.getText().toString().trim().replace(" ", "+");
 
@@ -107,15 +115,18 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
                     // Get a reference to the LoaderManager, in order to interact with loaders.
                     LoaderManager loaderManager = getLoaderManager();
 
+                    //Clear the adapter when an attempt to re-search is an option
+                    mAdapter.clear();
+
                     // Initialize the loader. Pass in the int ID constant defined above and pass in null for
                     // the bundle. Pass in this activity for the LoaderCallbacks parameter (which is valid
                     // because this activity implements the LoaderCallbacks interface).
-                    loaderManager.initLoader(BOOKS_LOADER_ID, null, MainActivity.this);
+                    loaderManager.restartLoader(BOOKS_LOADER_ID, null, MainActivity.this);
                 } else {
                     View progressBar = findViewById(R.id.progress_bar);
                     progressBar.setVisibility(View.GONE);
 
-                    TextView emptyTextView = (TextView) findViewById(android.R.id.empty);
+                    emptyTextView = (TextView) findViewById(android.R.id.empty);
                     emptyTextView.setText(R.string.no_internet);
                 }
             }
@@ -140,7 +151,7 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
 
         progressBar.setVisibility(View.GONE);
 
-        TextView emptyTextView = (TextView) findViewById(android.R.id.empty);
+        emptyTextView = (TextView) findViewById(android.R.id.empty);
         emptyTextView.setText(R.string.empty_view_text);
 
         // Clear the adapter of previous book data
@@ -149,6 +160,7 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
         // If there is a valid list of Books, then add them to the adapter's data set. This will trigger the ListView to update.
         if (data != null && !data.isEmpty()) {
             mAdapter.addAll(data);
+            emptyTextView.setText(null);
         }
     }
 
